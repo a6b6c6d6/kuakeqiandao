@@ -1,0 +1,26 @@
+name: Quark Checkin
+
+on:
+  schedule:
+   
+    - cron: '18 22 * * *'  # 北京时间 UTC+8，22:00 UTC = 6:00 北京时间
+  workflow_dispatch:  
+
+jobs:
+  checkin:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run checkin script
+        run: node checkin.js
