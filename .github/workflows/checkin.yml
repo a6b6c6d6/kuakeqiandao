@@ -21,7 +21,7 @@ jobs:
         run: npm install axios
 
       - name: 运行签到
-        run: node quark-sign.js
+        run: node checkin.js
         env:
           COOKIE_QUARK: ${{ secrets.COOKIE_QUARK }}
           DD_ACCESS_TOKEN: ${{ secrets.DD_ACCESS_TOKEN }}
