@@ -39,7 +39,7 @@
 
 ## 获取 Cookie（手机端）
 - 1.打开抓包工具，抓https类型
-- 2. 打开 夸克网盘 ，打开签到页面，在抓包工具搜索   https://drive-m.quark.cn/1/clouddrive/capacity/growth/info
+- 2.打开 夸克网盘 ，打开签到页面，在抓包工具搜索   https://drive-m.quark.cn/1/clouddrive/capacity/growth/info
 - 3.把网址里的kps;sign;vcode找到，编辑成以下格式kps=xxxxxx;sign=xxxxxx;vcode=xxxxxx
 - 4.填写QUARK_COOKIE
 
