@@ -60,6 +60,13 @@
 - 多账号：在 `QUARK_COOKIE` 里用&& 分隔多个 Cookie，脚本会依次签到并一次性推送结果。
 
 ---
+## 致谢
+本仓库核心签到逻辑借鉴自 [Liu8Can/Quark_Auot_Check_In](https://github.com/Liu8Can/Quark_Auot_Check_In)，  
+在此对原作者的无私分享表示衷心感谢！
 
+## License
+MIT License
+
+---
 ## 免责声明
 本项目仅供学习交流，请确保使用的账号 Cookie 来自您本人，由此带来的任何风险与仓库作者无关。
