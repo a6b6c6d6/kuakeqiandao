@@ -57,7 +57,7 @@
 
 ## 自定义
 - 修改执行时间：编辑 `.github/workflows/checkin.yml` 里的 `cron` 表达式.
-- 多账号：在 `QUARK_COOKIE` 里用英文半角逗号 `,` 分隔多个 Cookie，脚本会依次签到并一次性推送结果。
+- 多账号：在 `QUARK_COOKIE` 里用&& 分隔多个 Cookie，脚本会依次签到并一次性推送结果。
 
 ---
 
