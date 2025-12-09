@@ -1,4 +1,3 @@
-
 const axios = require('axios');
 const crypto = require('crypto');
 
@@ -45,35 +44,48 @@ async function doCheckIn(cookie) {
   if (!kps || !sign || !vcode) return { ok: false, msg: 'Cookie 缺少 kps/sign/vcode' };
 
   try {
-    const infoRes = await axios.get('https://drive-m.quark.cn/1/clouddrive/capacity/growth/info', {
+    // 1. 第一次获取：检查今日是否已签到
+    const infoRes1 = await axios.get('https://drive-m.quark.cn/1/clouddrive/capacity/growth/info', {
       params: { pr: 'ucpro', fr: 'android', kps, sign, vcode },
       timeout: 10000
     });
-    const data = infoRes.data.data;
-    if (!data) return { ok: false, msg: '获取成长信息失败' };
+    const base = infoRes1.data.data;
+    if (!base) return { ok: false, msg: '获取成长信息失败' };
 
-    if (!user) user = data.nickname || data.uid || kps.slice(0, 8);
-    const isVip = data['88VIP'] ? '88VIP' : '普通用户';
-    const total = data.total_capacity;
-    const signReward = data.cap_composition?.sign_reward || 0;
-    const signInfo = data.cap_sign;
+    if (!user) user = base.nickname || base.uid || kps.slice(0, 8);
+    const isVip = base['88VIP'] ? '88VIP' : '普通用户';
 
-    let msg = `【${isVip}】${user}\n💾 总容量：${convertBytes(total)}，签到奖励：${convertBytes(signReward)}\n`;
-
-    if (signInfo.sign_daily) {
-      msg += `✅ 已签到：+${convertBytes(signInfo.sign_daily_reward)}，连签(${signInfo.sign_progress}/${signInfo.sign_target})`;
-    } else {
-      const signRes = await axios.post('https://drive-m.quark.cn/1/clouddrive/capacity/growth/sign', { sign_cyclic: true }, {
-        params: { pr: 'ucpro', fr: 'android', kps, sign, vcode },
-        timeout: 10000
-      });
+    // 2. 执行签到（如果今天还没签）
+    if (!base.cap_sign.sign_daily) {
+      const signRes = await axios.post('https://drive-m.quark.cn/1/clouddrive/capacity/growth/sign',
+        { sign_cyclic: true },
+        { params: { pr: 'ucpro', fr: 'android', kps, sign, vcode }, timeout: 10000 }
+      );
       const sr = signRes.data;
-      if (sr.data) {
-        msg += `✅ 签到成功：+${convertBytes(sr.data.sign_daily_reward)}，连签(${signInfo.sign_progress + 1}/${signInfo.sign_target})`;
-      } else {
-        msg += `❌ 签到失败：${sr.message}`;
+      if (!sr.data) {
+        return { ok: false, msg: `【${isVip}】${user}\n❌ 签到失败：${sr.message}` };
       }
     }
+
+    // 3. 第二次获取：刷新签到后的最新数据
+    const infoRes2 = await axios.get('https://drive-m.quark.cn/1/clouddrive/capacity/growth/info', {
+      params: { pr: 'ucpro', fr: 'android', kps, sign, vcode },
+      timeout: 10000
+    });
+    const latest = infoRes2.data.data;
+    if (!latest) return { ok: false, msg: '刷新成长信息失败' };
+
+    // 4. 拼装最终文案（使用最新数据）
+    const total = latest.total_capacity;
+    const signReward = latest.cap_composition?.sign_reward || 0; // 历史累计签到奖励
+    const signInfo = latest.cap_sign;
+    const dailyReward = signInfo.sign_daily_reward || 0;
+
+    const msg = 
+      `【${isVip}】${user}\n` +
+      `💾 总容量：${convertBytes(total)}，历史签到：${convertBytes(signReward)}\n` +
+      `✅ ${signInfo.sign_daily ? '已签到' : '签到异常'}：+${convertBytes(dailyReward)}，连签(${signInfo.sign_progress}/${signInfo.sign_target})`;
+
     return { ok: true, msg };
   } catch (e) {
     return { ok: false, msg: `${user || '未知用户'}：${e.message}` };
