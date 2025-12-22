@@ -2,6 +2,9 @@ name: 夸克网盘每日签到
 
 on:
   schedule:
+  
+    - cron: '1 12 * * *'
+
     - cron: '18 22 * * *'   # UTC 0:30 = 北京时间 6：18
   workflow_dispatch:       # 手动触发按钮
 
