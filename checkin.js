@@ -41,7 +41,17 @@ async function doCheckIn(cookie) {
   const c = parseCookie(cookie);
   let user = c.user;
   const { kps, sign, vcode } = c;
-  if (!kps || !sign || !vcode) return { ok: false, msg: 'Cookie 缺少 kps/sign/vcode' };
+
+  // 提前确定账号标识，防止 catch 时不知道是哪个账号
+  const accountId = user || (kps ? kps.slice(0, 8) : '未知账号');
+
+  if (!kps || !sign || !vcode) {
+    const missing = [];
+    if (!kps) missing.push('kps');
+    if (!sign) missing.push('sign');
+    if (!vcode) missing.push('vcode');
+    return { ok: false, msg: `【${accountId}】Cookie 缺少参数：${missing.join(', ')}` };
+  }
 
   try {
     // 1. 第一次获取：检查今日是否已签到
@@ -50,7 +60,10 @@ async function doCheckIn(cookie) {
       timeout: 10000
     });
     const base = infoRes1.data.data;
-    if (!base) return { ok: false, msg: '获取成长信息失败' };
+    if (!base) {
+      const errMsg = infoRes1.data?.message || '接口返回异常（可能 token 过期或网络问题）';
+      return { ok: false, msg: `【${accountId}】获取成长信息失败：${errMsg}` };
+    }
 
     if (!user) user = base.nickname || base.uid || kps.slice(0, 8);
     const isVip = base['88VIP'] ? '88VIP' : '普通用户';
@@ -63,7 +76,7 @@ async function doCheckIn(cookie) {
       );
       const sr = signRes.data;
       if (!sr.data) {
-        return { ok: false, msg: `【${isVip}】${user}\n❌ 签到失败：${sr.message}` };
+        return { ok: false, msg: `【${isVip}】${user}\n❌ 签到失败：${sr.message}（code: ${sr.code || sr.status || '未知'}）` };
       }
     }
 
@@ -73,11 +86,14 @@ async function doCheckIn(cookie) {
       timeout: 10000
     });
     const latest = infoRes2.data.data;
-    if (!latest) return { ok: false, msg: '刷新成长信息失败' };
+    if (!latest) {
+      const errMsg = infoRes2.data?.message || '接口返回异常';
+      return { ok: false, msg: `【${user}】刷新成长信息失败：${errMsg}` };
+    }
 
     // 4. 拼装最终文案（使用最新数据）
     const total = latest.total_capacity;
-    const signReward = latest.cap_composition?.sign_reward || 0; // 历史累计签到奖励
+    const signReward = latest.cap_composition?.sign_reward || 0;
     const signInfo = latest.cap_sign;
     const dailyReward = signInfo.sign_daily_reward || 0;
 
@@ -88,7 +104,10 @@ async function doCheckIn(cookie) {
 
     return { ok: true, msg };
   } catch (e) {
-    return { ok: false, msg: `${user || '未知用户'}：${e.message}` };
+    // 尽可能提取 API 响应中的错误信息
+    const detail = e.response?.data?.message || e.message;
+    const status = e.response?.status ? `HTTP ${e.response.status}` : '网络错误';
+    return { ok: false, msg: `【${accountId}】${status}：${detail}` };
   }
 }
 
