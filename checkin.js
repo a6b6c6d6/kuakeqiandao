@@ -36,6 +36,23 @@ function parseCookie(cookie) {
   return o;
 }
 
+/* ---------- 重试工具 ---------- */
+async function withRetry(fn, maxRetries = 2, delayMs = 3000) {
+  let lastErr;
+  for (let i = 0; i <= maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      if (i < maxRetries) {
+        console.log(`  ⏳ 第${i + 1}次重试（共${maxRetries}次）...`);
+        await new Promise(r => setTimeout(r, delayMs));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 /* ---------- 签到 ---------- */
 async function doCheckIn(cookie) {
   const c = parseCookie(cookie);
@@ -54,11 +71,11 @@ async function doCheckIn(cookie) {
   }
 
   try {
-    // 1. 第一次获取：检查今日是否已签到
-    const infoRes1 = await axios.get('https://drive-m.quark.cn/1/clouddrive/capacity/growth/info', {
+    // 1. 第一次获取：检查今日是否已签到（带重试）
+    const infoRes1 = await withRetry(() => axios.get('https://drive-m.quark.cn/1/clouddrive/capacity/growth/info', {
       params: { pr: 'ucpro', fr: 'android', kps, sign, vcode },
       timeout: 15000
-    });
+    }));
     const base = infoRes1.data.data;
     if (!base) {
       const errMsg = infoRes1.data?.message || '接口返回异常（可能 token 过期或网络问题）';
@@ -68,23 +85,23 @@ async function doCheckIn(cookie) {
     if (!user) user = base.nickname || base.uid || kps.slice(0, 8);
     const isVip = base['88VIP'] ? '88VIP' : '普通用户';
 
-    // 2. 执行签到（如果今天还没签）
+    // 2. 执行签到（如果今天还没签）（带重试）
     if (!base.cap_sign.sign_daily) {
-      const signRes = await axios.post('https://drive-m.quark.cn/1/clouddrive/capacity/growth/sign',
+      const signRes = await withRetry(() => axios.post('https://drive-m.quark.cn/1/clouddrive/capacity/growth/sign',
         { sign_cyclic: true },
         { params: { pr: 'ucpro', fr: 'android', kps, sign, vcode }, timeout: 15000 }
-      );
+      ));
       const sr = signRes.data;
       if (!sr.data) {
         return { ok: false, msg: `【${isVip}】${user}\n❌ 签到失败：${sr.message}（code: ${sr.code || sr.status || '未知'}）` };
       }
     }
 
-    // 3. 第二次获取：刷新签到后的最新数据
-    const infoRes2 = await axios.get('https://drive-m.quark.cn/1/clouddrive/capacity/growth/info', {
+    // 3. 第二次获取：刷新签到后的最新数据（带重试）
+    const infoRes2 = await withRetry(() => axios.get('https://drive-m.quark.cn/1/clouddrive/capacity/growth/info', {
       params: { pr: 'ucpro', fr: 'android', kps, sign, vcode },
       timeout: 15000
-    });
+    }));
     const latest = infoRes2.data.data;
     if (!latest) {
       const errMsg = infoRes2.data?.message || '接口返回异常';
