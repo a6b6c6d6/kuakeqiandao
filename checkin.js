@@ -57,7 +57,7 @@ async function doCheckIn(cookie) {
     // 1. 第一次获取：检查今日是否已签到
     const infoRes1 = await axios.get('https://drive-m.quark.cn/1/clouddrive/capacity/growth/info', {
       params: { pr: 'ucpro', fr: 'android', kps, sign, vcode },
-      timeout: 10000
+      timeout: 15000
     });
     const base = infoRes1.data.data;
     if (!base) {
@@ -72,7 +72,7 @@ async function doCheckIn(cookie) {
     if (!base.cap_sign.sign_daily) {
       const signRes = await axios.post('https://drive-m.quark.cn/1/clouddrive/capacity/growth/sign',
         { sign_cyclic: true },
-        { params: { pr: 'ucpro', fr: 'android', kps, sign, vcode }, timeout: 10000 }
+        { params: { pr: 'ucpro', fr: 'android', kps, sign, vcode }, timeout: 15000 }
       );
       const sr = signRes.data;
       if (!sr.data) {
@@ -83,7 +83,7 @@ async function doCheckIn(cookie) {
     // 3. 第二次获取：刷新签到后的最新数据
     const infoRes2 = await axios.get('https://drive-m.quark.cn/1/clouddrive/capacity/growth/info', {
       params: { pr: 'ucpro', fr: 'android', kps, sign, vcode },
-      timeout: 10000
+      timeout: 15000
     });
     const latest = infoRes2.data.data;
     if (!latest) {
